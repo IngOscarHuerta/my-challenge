@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { addClients, addClient } from '../redux/clientReducer';
 import axios from 'axios';
-import { FormGroup, FormControl, InputLabel, Input, FormHelperText, Grid, Card, CardContent, Typography, Button, CardActions, Container } from '@material-ui/core';
+import { FormGroup, FormControl, InputLabel, Input, FormHelperText, Box, Grid, Paper, Typography, Button, Container } from '@material-ui/core';
 import swal from 'sweetalert';
 import { makeStyles } from '@material-ui/core/styles';
 import Table from '@material-ui/core/Table';
@@ -11,7 +11,6 @@ import TableCell from '@material-ui/core/TableCell';
 import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
-import Paper from '@material-ui/core/Paper';
 
 const useStyles = makeStyles({
     table: {
@@ -19,7 +18,9 @@ const useStyles = makeStyles({
     },
 });
 
+
 const List = () => {
+
     const classes = useStyles();
 
     const dispatch = useDispatch()
@@ -36,6 +37,10 @@ const List = () => {
     const [errorForm, setErrorForm] = useState({
         firstName: '', lastName: '', address: '', ssn: ''
     })
+
+    axios.defaults.headers.common = {
+        'Authorization': `Bearer ${userState.user.token}`
+    }
 
     const handleChange = (event) => {
         event.preventDefault()
@@ -89,7 +94,7 @@ const List = () => {
         }
 
         clientState.map(client => {
-            if (client.ssn == fields.ssn.trim()) {
+            if (client.ssn === fields.ssn.trim()) {
                 formIsValid = false
                 setErrorForm(prev => ({ ...prev, ssn: "Duplicated SSN" }));
             }
@@ -132,25 +137,26 @@ const List = () => {
         setErrorForm({ firstName: '', lastName: '', address: '', ssn: '' })
     }
 
+    const getMembers = () => {
+
+        axios.get("http://localhost:8081/api/members")
+            .then(
+                (data) => {
+                    setIsLoaded(true)
+                    setClients(data.data);
+                    dispatch(addClients(data.data))
+                },
+                (error) => {
+                    setIsLoaded(false)
+                    setError(error);
+                }
+            )
+    }
+
     useEffect(() => {
         if (userState.user.token) {
+            getMembers()
 
-            axios.defaults.headers.common = {
-                'Authorization': `Bearer ${userState.user.token}`
-            }
-
-            axios.get("http://localhost:8081/api/members")
-                .then(
-                    (data) => {
-                        setIsLoaded(true)
-                        setClients(data.data);
-                        dispatch(addClients(data.data))
-                    },
-                    (error) => {
-                        setIsLoaded(false)
-                        setError(error);
-                    }
-                )
         }
 
     }, [userState])
@@ -161,6 +167,14 @@ const List = () => {
         }
     }, [clientState])
 
+    useEffect(() => {
+
+        const interval = setInterval(() => {
+            getMembers()
+        }, 120000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     if (error) {
         return <div>Error: {error.message}</div>;
@@ -169,15 +183,22 @@ const List = () => {
     } else {
 
         return (
-            <Container>
-                <Grid contanier>
-                    <Grid item md={12}>
-                        <Card>
-                            <CardContent>
+            <Container justify="space-between" style={{ padding: 30 }}>
+                <Paper variant="outlined" elevation={3}>
+                    <Grid container  >
+
+                        <Grid item md={4} >
+
+                            <div style={{ padding: 10 }}>
                                 <Typography variant="h5" component="h2">
-                                    Formulario para agregar clientes
+                                    Formulario para agregar miembros
                                 </Typography>
+                            </div>
+
+                            <div style={{ padding: 10 }}>
+
                                 <FormGroup>
+
                                     <FormControl required error={errorForm.firstName ? true : false}>
                                         <InputLabel htmlFor="firstName">First Name</InputLabel>
                                         <Input name="firstName" onChange={handleChange} value={form.firstName} aria-describedby="First Name" />
@@ -213,22 +234,26 @@ const List = () => {
                                 </FormGroup>
 
 
-                            </CardContent>
-                            <CardActions>
-                                <Button variant="contained" color="primary" onClick={sendForm}>Save</Button>
-                                <Button variant="contained" color="primary" onClick={resetForm}>Reset</Button>
+                            </div>
 
-                            </CardActions>
-                        </Card>
+                            <div style={{padding: 10, float: 'left'}}>
+                              
+                                    <Button variant="contained" color="primary" onClick={sendForm}>Save</Button>
+                              </div>
+                              <div style={{padding: 10, float: 'right'}}>
+                                    <Button variant="contained" color="primary" onClick={resetForm}>Reset</Button>
+                              </div>
+                        </Grid>
 
-                    </Grid>
-                    <Grid item md={12}>
-                        <Card>
-                            <CardContent>
+                        <Grid item md={8} spacing={3}>
+                            <div style={{ padding: 10 }}>
+
                                 <Typography variant="h5" component="h2">
-                                    Listado de clientes
+                                    Listado de miembros
                                 </Typography>
+                            </div>
 
+                            <div style={{ padding: 10 }}>
                                 <TableContainer component={Paper}>
                                     <Table className={classes.table} size="small" aria-label="a dense table">
                                         <TableHead>
@@ -251,13 +276,13 @@ const List = () => {
                                         </TableBody>
                                     </Table>
                                 </TableContainer>
+                            </div>
 
-                            </CardContent>
-                        </Card>
+                        </Grid>
+
                     </Grid>
-                </Grid>
+                </Paper>
             </Container>
-
 
         );
     }

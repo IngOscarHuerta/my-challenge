@@ -1,7 +1,7 @@
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux'
-import { addUser }from '../redux/userReducer'
+import { addUser } from '../redux/userReducer'
 
 import {
     BrowserRouter as Router,
@@ -14,24 +14,35 @@ const Webpages = () => {
 
     const [error, setError] = useState(null);
     const [isLoaded, setIsLoaded] = useState(false);
-    const userBody = { "username": "sarah", "password": "connor" }
     const dispatch = useDispatch()
 
     useEffect(() => {
+        
+        const userBody = { "username": "sarah", "password": "connor" }
+
         async function fetchMyAPI() {
             const user = await axios.post("http://localhost:8081/auth", userBody)
-            if(user) {
+            if (user) {
                 setIsLoaded(true);
                 dispatch(addUser(user.data))
             } else {
                 setIsLoaded(true);
                 setError(user);
-            } 
+            }
         }
 
-      fetchMyAPI()
-   
+        const interval = setInterval(() => {
+            fetchMyAPI()
+        }, 900000);
+        
+        
+        fetchMyAPI()
+
+        return () => clearInterval(interval);
+
     }, [])
+
+
 
     if (error) {
         return <div>Error: {error.message}</div>;
